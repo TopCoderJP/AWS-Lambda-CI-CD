@@ -1,4 +1,4 @@
-name: Validate CloudFormatiomn on PR
+name: Validate CloudFormation on PR
 
 on:
   pull_request:
@@ -9,7 +9,6 @@ permissions:
   pull_requests: write
   contents: read
 
-
 jobs:
   validate-cfn:
     runs-on: ubuntu-latest
@@ -17,12 +16,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Configure AWS Credentials
-      - uses: aws-actions/configure-aws-credentials@v1
-      - with:
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
           aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
-          aws-secret-access-key: ${{sectrets.AWS_SECRET_ACCESS_KEY}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
           aws-region: ap-northeast-1
-
 
       - name: Validate Cloudformation template
         run: |
@@ -31,7 +29,7 @@ jobs:
       - name: Deploy Our Stack
         run: |
           stack_name="pr-test-stack-${{github.event.pull_request.number}}"
-          aws cloudformation create-stack --stack-name $stack_name --template-body file://cloudformation/s3-bucket.yml --parameters ParameterKey=Environment,ParameterValue=test
+          aws cloudformation create-stack --stack-name $stack_name --template-body file://cloudformation/s3-bucket.yaml --parameters ParameterKey=Environment,ParameterValue=test
 
       - name: Comment on the PR
         uses: actions/github-script@v6
@@ -45,20 +43,18 @@ jobs:
               body: 'Cloudformation test stack deployed. Stack name: pr-test-stack-${{ github.event.pull_request.number}}'
             })
 
+  cleanup-on-merge:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ap-northeast-1
 
-cleanup-on-merge:
-  runs-on: ubuntu-latest
-  if: github.event.pull_request.merged == true
-  steps:
-    - name: configure AWS Credentials
-    - uses: aws-actions/configure-aws-credentials@v1
-    - with:
-        aws-access-key-id: ${{secrets.AWS_ACCESS_KEY_ID}}
-        aws-secret-access-key: ${{sectrets.AWS_SECRET_ACCESS_KEY}}
-        aws-region: ap-northeast-1
-
-
-    - name: Delete Test Stack
-      run: |
-        stack_name="pr-test-stack-${{github.event.pull_request.number}}"
-        aws cloudformation delete-stack --stack-name $stack_name
+      - name: Delete Test Stack
+        run: |
+          stack_name="pr-test-stack-${{github.event.pull_request.number}}"
+          aws cloudformation delete-stack --stack-name $stack_name
