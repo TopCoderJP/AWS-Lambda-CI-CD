@@ -1,18 +1,14 @@
-
-
-# Specifying  The name,  trigger events and paths to the lambda folder
+# Specifying The name, trigger events and paths to the lambda folder
 name: Deploy AWS Lambda
 
 on:
   push:
     branches:
-      - main:
+      - main
     paths:
       - 'lambda/'
 
-
 # Specifying the Jobs
-
 jobs:
   deploy-lambda:                   # name of the job
     runs-on: ubuntu-latest         # Sets or specifies the Runner
@@ -20,28 +16,27 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Set Up Python        # Sets up our python environment
-        uses: actions/python@v2
+        uses: actions/setup-python@v2
         with:
           python-version: '3.12'
 
-# Specifying depedencies 
+      # Specifying dependencies 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r lambda/requirements.txt lambda/
+          pip install -r lambda/requirements.txt
 
-# Specifying AWS Credentials
+      # Specifying AWS Credentials
       - name: Configure AWS Creds
-        uses: aws-actions/configure-aws@v1
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{SECRETS.AWS_ACCESS_KEY_ID}}
-          aws-access-secret-key: ${{SECRETS.AWS_SECRET_ACCESS_KEY}}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-1
 
-# Specifiying AWS Lambda Function Deployment. This will zip the lambda directory, update the lambda function and deploys it directly to AWS
+      # Specifying AWS Lambda Function Deployment
       - name: Deploy Lambda Function
         run: |
           cd lambda
-          zip -r lambda.zip
-          aws lambda update-function-code --function-name my-test-cicd-lambda --zip-file fileb://lambda.zip 
-
+          zip -r lambda.zip .
+          aws lambda update-function-code --function-name my-test-cicd-lambda --zip-file fileb://lambda.zip
