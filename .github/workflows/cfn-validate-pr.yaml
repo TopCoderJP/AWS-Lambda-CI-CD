@@ -4,11 +4,18 @@ on:
   pull_request:
     paths:
       - 'cloudformation/**'
+    
+    types:
+      - opened # Trigger when a new PR is created
+      - synchronize # Trigger when the PR is updated
+      - reopened # Trigger when a closed PR is reopened
+      - closed # Trigger when the PR is closed (for cleanup only)
 
 permissions:
   pull_requests: write
   contents: read
 
+# Skip deployment if the Pull Request is closed
 jobs:
   validate-cfn:
     runs-on: ubuntu-latest
@@ -30,8 +37,11 @@ jobs:
         run: |
           stack_name="pr-test-stack-${{github.event.pull_request.number}}"
           aws cloudformation create-stack --stack-name $stack_name --template-body file://cloudformation/s3-bucket.yaml --parameters ParameterKey=Environment,ParameterValue=test
+        continue-on-error: false # Ensure that errors prevent further steps from running
 
-      - name: Comment on the PR
+
+
+      - name: Comment on the Pull Request
         uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -54,7 +64,8 @@ jobs:
           aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
           aws-region: ap-northeast-1
 
-      - name: Delete Test Stack
+      - name: Delete Cloudformation Test Stack
         run: |
           stack_name="pr-test-stack-${{github.event.pull_request.number}}"
+          echo "Deleting stack: $stack_name"
           aws cloudformation delete-stack --stack-name $stack_name
